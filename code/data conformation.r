@@ -48,6 +48,20 @@ df_NA <- df_ydef %>%
     mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
                             sector == "MARKT" ~ "Market Economy (MARKT)", 
                             TRUE ~ sector)) %>% 
+    # we have to join the sectors: D-E, M-N, O-U
+    mutate(sector_name = case_when(
+            sector == "D" | sector == "E" ~ "Electricity, gas, steam and air conditioning supply | Water supply; sewerage, waste management and remediation activities",
+            sector == "M" | sector == "N" ~ "Administrative and support service activities | Professional, scientific and technical activities",
+            sector == "O" | sector == "U" ~ "Public administration and defence; compulsory social security | Activities of extraterritorial organizations and bodies",
+            TRUE ~ sector_name),
+            sector = case_when(
+            sector == "D"| sector == "E" ~ "D-E",
+            sector == "M"| sector == "N" ~ "M-N",
+            sector == "O"| sector == "U" ~ "O-U",
+            TRUE ~ sector)) %>% group_by(sector, sector_name, year) %>% 
+    summarize(Y_def = mean(Y_def, na.rm = TRUE),
+              Y = sum(Y, na.rm = TRUE),
+              L = sum(L, na.rm = TRUE)) %>% ungroup() %>%
     rename(Y_r = Y) %>% 
     mutate(Y_r = Y_r/Y_def, 
            y_r = Y_r/L)
@@ -60,16 +74,22 @@ rm(df_ydef, df_y, df_L, read_and_process_sheet)
 # - K: (Kq_GFCF: All assets, chained linked volumes (2020))
 
 df_k <- read_excel("data/ES_capital accounts.xlsx", sheet = "Kq_GFCF") %>% 
-  select(-var, -geo_code, -geo_name) %>%
-  rename(sector = nace_r2_code, sector_name = nace_r2_name) %>% 
+  select(-var, -geo_code, -geo_name, -nace_r2_name) %>%
+  rename(sector = nace_r2_code) %>% 
   filter(!sector %in% no_sectors) %>% 
-  gather(year, K, -sector, -sector_name) %>% mutate(year = as.integer(year)) %>%
-  relocate(year, sector, sector_name) %>%
+  gather(year, K, -sector) %>% mutate(year = as.integer(year)) %>%
+  relocate(year, sector) %>%
   arrange(sector, year) %>% 
   mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
                             sector == "MARKT" ~ "Market Economy (MARKT)", 
+                            sector == "D"| sector == "E" ~ "D-E",
+                            sector == "M"| sector == "N" ~ "M-N",
+                            sector == "O"| sector == "U" ~ "O-U",
                             TRUE ~ sector),
-         K = K * 10^6) # In euros, not in millions of euros
+         K = K * 10^6) %>%  # In euros, not in millions of euros
+    group_by(sector, year) %>%
+    summarize(K = sum(K, na.rm = TRUE),
+              .groups = "drop")
 
 # [3] Labour accounts database ----
 
@@ -97,12 +117,20 @@ df_h_w <- read_excel("data/ES_labour accounts.xlsx", sheet = "Share_W") %>%
 
 educ_years <- c("1" = 6, "2" = 12, "3" = 16)
 
-df_h <- left_join(df_h_e, df_h_w, by = c("sector", "year", "education", "age", "gender"))%>%
-  mutate(share_E = share_E/100, share_W = share_W/100) %>%
-  mutate(education = as.character(education),
+df_h <- left_join(df_h_e, df_h_w, by = c("sector", "year", "education", "age", "gender")) %>%
+    mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
+                            sector == "MARKT" ~ "Market Economy (MARKT)", 
+                            sector == "D"| sector == "E" ~ "D-E",
+                            sector == "M"| sector == "N" ~ "M-N",
+                            sector == "O"| sector == "U" ~ "O-U",
+                            TRUE ~ sector)) %>% 
+    group_by(sector, education, age, gender, year) %>%
+    summarize(share_E = mean(share_E, na.rm = TRUE)/100,
+              share_W = mean(share_W, na.rm = TRUE)/100) %>% 
+    mutate(education = as.character(education),
          Years_Edu = educ_years[education]) %>%
-  group_by(sector, year) %>%
-  summarise(s_e = sum(share_E * Years_Edu, na.rm = TRUE),
+    group_by(sector, year) %>%
+    summarise(s_e = sum(share_E * Years_Edu, na.rm = TRUE),
             s_w = sum(share_W * Years_Edu, na.rm = TRUE),
             .groups = "drop") %>% 
   mutate(
@@ -115,16 +143,14 @@ df_h <- left_join(df_h_e, df_h_w, by = c("sector", "year", "education", "age", "
       s_w > 4 & s_w <= 8  ~ 0.536 + 0.101 * (s_w - 4),
       s_w > 8  ~ 0.94 + 0.068 * (s_w - 8)),
     h_e = exp(phi_s_e),
-    h_w = exp(phi_s_w)) %>% select(-phi_s_e, -phi_s_w) %>% 
-    mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
-                            sector == "MARKT" ~ "Market Economy (MARKT)", 
-                            TRUE ~ sector))
+    h_w = exp(phi_s_w)) %>% select(-phi_s_e, -phi_s_w) 
+   
 
 rm(df_h_e, df_h_w, educ_years)
 
 # [4] Merge all databases ----
-data <- df_NA %>% 
-    left_join(df_k, by = c("year", "sector", "sector_name")) %>%
+data <- df_NA %>%
+    left_join(df_k, by = c("year", "sector")) %>%
     left_join(df_h, by = c("year", "sector"))
 
 rm(df_NA, df_k, df_h, no_sectors)
