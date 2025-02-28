@@ -66,7 +66,8 @@ data_k <- read_excel("data/ES_capital accounts.xlsx", sheet = "Kq_GFCF") %>%
   arrange(sector, year) %>% 
   mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
                             sector == "MARKT" ~ "Market Economy (MARKT)", 
-                            TRUE ~ sector))
+                            TRUE ~ sector),
+         K = K * 10^6) # In euros, not in millions
 
 # Do a left join to add the K column to the main dataframe
 df <- left_join(df, data_k, by = c("year", "sector", "sector_name"))
@@ -98,10 +99,35 @@ educ_years <- c("1" = 6, "2" = 12, "3" = 16)
 
 data_h <- left_join(data_h_e, data_h_w, by = c("sector", "year", "education", "age", "gender"))%>%
   mutate(share_E = share_E/100, share_W = share_W/100) %>%
-  mutate(education = as.character(education),  # Asegurar que sea texto para el mapeo
-         Years_Edu = educ_years[education]) %>%  # Asignar años de educación
-  group_by(sector, year) %>%  # Agrupar por sector y año
-  summarise(s = sum(share_E * Years_Edu, na.rm = TRUE), .groups = "drop") 
+  mutate(education = as.character(education),
+         Years_Edu = educ_years[education]) %>%
+  group_by(sector, year) %>%
+  summarise(s_e = sum(share_E * Years_Edu, na.rm = TRUE),
+            s_w = sum(share_W * Years_Edu, na.rm = TRUE),
+            .groups = "drop") %>% 
+  mutate(
+    phi_s_e = case_when(
+      s_e <= 4  ~ 0.134 * s_e,
+      s_e > 4 & s_e <= 8  ~ 0.536 + 0.101 * (s_e - 4),
+      s_e > 8  ~ 0.94 + 0.068 * (s_e - 8)),
+    phi_s_w = case_when(
+      s_w <= 4  ~ 0.134 * s_w,
+      s_w > 4 & s_w <= 8  ~ 0.536 + 0.101 * (s_w - 4),
+      s_w > 8  ~ 0.94 + 0.068 * (s_w - 8)),
+    h_e = exp(phi_s_e),
+    h_w = exp(phi_s_w)) %>% select(-phi_s_e, -phi_s_w) %>% 
+    mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
+                            sector == "MARKT" ~ "Market Economy (MARKT)", 
+                            TRUE ~ sector))
+
+# Do a left join to add the h column to the main dataframe
+df <- left_join(df, data_h, by = c("year", "sector"))
+
+# Now we can calculate the TFP
+df <- df %>% 
+  mutate(A_e = y_r/((K/Y_r)^(a/(1-a)) * h_e),
+         A_w = y_r/((K/Y_r)^(a/(1-a)) * h_w))
 
 
-View(data_h)
+
+View(df)
