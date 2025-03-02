@@ -156,6 +156,9 @@ rm(df_h_e, df_h_w, educ_years)
 # [4] Merge all databases ----
 data <- df_NA %>%
     left_join(df_k, by = c("year", "sector")) %>%
-    left_join(df_h, by = c("year", "sector"))
+    left_join(df_h, by = c("year", "sector"))%>% 
+    group_by(sector) %>%
+    mutate(gamma_y = 100*(log(y_r) - lag(log(y_r)))) %>%
+    ungroup()
 
 rm(df_NA, df_k, df_h, no_sectors)

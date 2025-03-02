@@ -34,10 +34,7 @@ a = 1/3
 # Now we can calculate the TFP
 data <- data %>% 
   mutate(A_e = y_r/((K/Y_r)^(a/(1-a)) * h_e),
-         A_w = y_r/((K/Y_r)^(a/(1-a)) * h_w)) %>% 
-  group_by(sector) %>%
-  mutate(gamma_y = 100*(log(y_r) - lag(log(y_r)))) %>%
-  ungroup()
+         A_w = y_r/((K/Y_r)^(a/(1-a)) * h_w))
 
 # Note: (written in google docs)
 #For Capital: We are currently using the account called all the assets, this includes non-tangible assets (software, databases, R&D), it can be discussed that we can do the TFP decomposition only using tangible assets (fixed capital). 
@@ -86,7 +83,48 @@ ggplot(data) +
 # Question e: estimating alpha ----
 ## In last questions we have used a = 1/3, but we can estimate it using the data
 data <- data %>% 
-  mutate(labor_share = wL/Y_r)
+  mutate(labor_share = wL/Y_r, 
+         alpha = 1-labor_share)
+
+## Then, repeat the TFP decomposition
+data <- data %>% 
+  mutate(A_e_new = y_r/((K/Y_r)^(alpha/(1-alpha)) * h_e),
+         A_w_new = y_r/((K/Y_r)^(alpha/(1-alpha)) * h_w))
+
+
+## Computed with Share_E
+ggplot(data) +
+ aes(x = year, y = A_e_new, size = gamma_y) +
+ geom_line(colour = 'navyblue') +
+ scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
+ theme_light() +
+ labs(title = "TFP Residual", subtitle = "Computed with Share_E | sector-wise alpha",
+      y = "TFP Residual", x = "Year", size = "Real Value Added Growth Rate (%):") +
+  theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.position = 'bottom', legend.title = element_text(size = 12, face = "bold"),
+        legend.text = element_text(size = 10), 
+        legend.key = element_rect(fill = "white", colour = "white"), 
+        legend.box = "vertical",
+        axis.text.x = element_text(size = 10, angle = 90))+
+ facet_wrap(vars(sector))
+
+## Computed with Share_W
+ ggplot(data) +
+ aes(x = year, y = A_w_new, size = gamma_y) +
+ geom_line(colour = 'navyblue') +
+ scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
+ theme_light() +
+ labs(title = "TFP Residual", subtitle = "Computed with Share_W | sector-wise alpha",
+      y = "TFP Residual", x = "Year", size = "Real Value Added growth Rate (%):") +
+  theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.position = 'bottom', legend.title = element_text(size = 12, face = "bold"),
+        legend.text = element_text(size = 10), 
+        legend.key = element_rect(fill = "white", colour = "white"), 
+        legend.box = "vertical",
+        axis.text.x = element_text(size = 10, angle = 90))+
+ facet_wrap(vars(sector))
 
 
 View(data)
