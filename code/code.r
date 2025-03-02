@@ -66,56 +66,20 @@ ggplot(data) +
  facet_wrap(vars(sector))
 
 
-
-
-ggplot(data) +
- aes(x = year, y = A_e) +
- geom_line(colour = "navyblue") +
- theme_light() +
- labs(title = "TFP Residual", subtitle = "Computed with Share_E",
-      y = "TFP Residual", x = "Year") +
-  theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-        plot.subtitle = element_text(size = 14, face = "bold", hjust = 0.5),
-        legend.position = 'bottom', legend.title = element_text(size = 12, face = "bold"),
-        legend.text = element_text(size = 10), 
-        legend.key = element_rect(fill = "white", colour = "white"), 
-        legend.box = "vertical")+
- facet_wrap(vars(sector))
-
-
-ggplot(data) +
- aes(x = year, y = gamma_y) +
- geom_line(colour = "navyblue") +
- theme_light() +
- labs(title = "Real Value Added Growth Rate", subtitle = "2020 = 100",
-      y = "(%)", x = "Year") +
-  theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
-        plot.subtitle = element_text(size = 14, face = "bold", hjust = 0.5),
-        legend.position = 'bottom', legend.title = element_text(size = 12, face = "bold"),
-        legend.text = element_text(size = 10), 
-        legend.key = element_rect(fill = "white", colour = "white"), 
-        legend.box = "vertical")+
- facet_wrap(vars(sector))
-
-
-
-
-
-
  ggplot(data) +
- aes(x = year, y = A_w, colour = sector, size = y_r) +
- geom_line() +
- scale_color_hue(direction = 1) +
+ aes(x = year, y = A_w, size = gamma_y) +
+ geom_line(colour = 'navyblue') +
+ scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
  theme_light() +
  labs(title = "TFP Residual", subtitle = "Computed with Share_W",
-      y = "TFP Residual", x = "Year",
-      colour = "Sector:", size = "Real Value Added growth rate") +
+      y = "TFP Residual", x = "Year", size = "Real Value Added growth Rate (%):") +
   theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
         plot.subtitle = element_text(size = 14, face = "bold", hjust = 0.5),
         legend.position = 'bottom', legend.title = element_text(size = 12, face = "bold"),
         legend.text = element_text(size = 10), 
         legend.key = element_rect(fill = "white", colour = "white"), 
-        legend.box = "vertical")+
+        legend.box = "vertical",
+        axis.text.x = element_text(size = 10, angle = 90))+
  facet_wrap(vars(sector))
 
  # 
