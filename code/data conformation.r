@@ -21,6 +21,7 @@ no_sectors <- c("C10-C12", "C13-C15", "C16-C18", "C19", "C20", "C20-C21", "C21",
 # - Y_r: VA_CP/Y_def (Real value added in euros)
 # - L: (EMP) Number of persons employed
 # - y_r: Y_r /(L) (Real value added per worker in euros)
+# - wL: Compensation of employees, 2020 prices, euros, (COMP/Y_def)
 
 # Beware that originally the deflator is in percentage points, so we need to divide by 100
 # Also, the real value added is in millions of euros, so we need to multiply by 10^6
@@ -41,10 +42,12 @@ read_and_process_sheet <- function(sheet_name, var_name, scale) {
 df_ydef <- read_and_process_sheet("VA_PI", "Y_def", 1/100)
 df_y <- read_and_process_sheet("VA_CP", "Y", 10^6)
 df_L <- read_and_process_sheet("EMP", "L", 10^3)
+df_comp <- read_and_process_sheet("COMP", "wL", 10^6)
 
 df_NA <- df_ydef %>%
     left_join(df_y, by = c("year", "sector", "sector_name")) %>%
     left_join(df_L, by = c("year", "sector", "sector_name")) %>% 
+    left_join(df_comp, by = c("year", "sector", "sector_name")) %>%
     mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
                             sector == "MARKT" ~ "Market Economy (MARKT)", 
                             TRUE ~ sector)) %>% 
@@ -61,11 +64,13 @@ df_NA <- df_ydef %>%
             TRUE ~ sector)) %>% group_by(sector, sector_name, year) %>% 
     summarize(Y_def = mean(Y_def, na.rm = TRUE),
               Y = sum(Y, na.rm = TRUE),
+              wL = sum(wL, na.rm = TRUE),
               L = sum(L, na.rm = TRUE)) %>% ungroup() %>%
     rename(Y_r = Y) %>% 
     mutate(Y_r = Y_r/Y_def, 
-           y_r = Y_r/L)
-rm(df_ydef, df_y, df_L, read_and_process_sheet)
+           y_r = Y_r/L,
+           wL = wL/Y_def)
+rm(df_ydef, df_y, df_L, df_comp, read_and_process_sheet)
 # [2] Capital accounts database ----
 
 # We want the following variables:

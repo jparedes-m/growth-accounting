@@ -44,11 +44,12 @@ data <- data %>%
 
 #For Human Capital: We are currently using two ways to make a weighted average using the share of employed people and using the compensation share. (Elaborate more on this)
 
-# Question d: 
+# Question d: TFP Sector Decomposition ----
 sectors <- c('A', 'B', 'C', 'D-E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M-N', 'O-U')
 data <- data %>% 
   filter(sector %in% sectors)
 
+## Computed with Share_E
 ggplot(data) +
  aes(x = year, y = A_e, size = gamma_y) +
  geom_line(colour = 'navyblue') +
@@ -65,7 +66,7 @@ ggplot(data) +
         axis.text.x = element_text(size = 10, angle = 90))+
  facet_wrap(vars(sector))
 
-
+## Computed with Share_W
  ggplot(data) +
  aes(x = year, y = A_w, size = gamma_y) +
  geom_line(colour = 'navyblue') +
@@ -82,6 +83,10 @@ ggplot(data) +
         axis.text.x = element_text(size = 10, angle = 90))+
  facet_wrap(vars(sector))
 
- # 
+# Question e: estimating alpha ----
+## In last questions we have used a = 1/3, but we can estimate it using the data
+data <- data %>% 
+  mutate(labor_share = wL/Y_r)
+
 
 View(data)
