@@ -79,51 +79,56 @@ rm(df_ydef, df_y, df_L, df_comp, read_and_process_sheet)
 # - K: (Kq_GFCF: All assets, chained linked volumes (2020))
 # - K_fixed: (optional) we can use another measure only for machinery and equipment not for software, databases, R&D or buildings. 
 
-df_k <- read_excel("data/ES_capital accounts.xlsx", sheet = "Kq_GFCF") %>% 
-  select(-var, -geo_code, -geo_name, -nace_r2_name) %>%
-  rename(sector = nace_r2_code) %>% 
-  filter(!sector %in% no_sectors) %>% 
-  gather(year, K, -sector) %>% mutate(year = as.integer(year)) %>%
-  relocate(year, sector) %>%
-  arrange(sector, year) %>% 
-  mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
-                            sector == "MARKT" ~ "Market Economy (MARKT)", 
-                            sector == "D"| sector == "E" ~ "D-E",
-                            sector == "M"| sector == "N" ~ "M-N",
-                            sector == "O"| sector == "U" ~ "O-U",
-                            TRUE ~ sector),
-         K = K * 10^6) %>%  # In euros, not in millions of euros
+read_process_capital <- function(file_path, sheet_name, no_sectors) {
+  read_excel(file_path, sheet = sheet_name) %>%
+    select(-var, -geo_code, -geo_name, -nace_r2_name) %>%
+    rename(sector = nace_r2_code) %>%
+    filter(!sector %in% no_sectors) %>%
+    gather(year, K, -sector) %>%
+    mutate(
+      year = as.integer(year),
+      sector = case_when(
+        sector == "TOT" ~ "Total Economy (TOT)", 
+        sector == "MARKT" ~ "Market Economy (MARKT)", 
+        sector %in% c("D", "E") ~ "D-E",
+        sector %in% c("M", "N") ~ "M-N",
+        sector %in% c("O", "U") ~ "O-U",
+        TRUE ~ sector
+      ),
+      K = K * 10^6 # Convert to euros, not millions of euros
+    ) %>%
+    arrange(sector, year) %>%
     group_by(sector, year) %>%
-    summarize(K = sum(K, na.rm = TRUE),
-              .groups = "drop")
+    summarize(!!sheet_name := sum(K, na.rm = TRUE), .groups = "drop")
+}
 
-df_k_fixed <- read_excel("data/ES_capital accounts.xlsx", sheet = "Kq_OCon") %>% 
-  select(-var, -geo_code, -geo_name, -nace_r2_name) %>%
-  rename(sector = nace_r2_code) %>% 
-  filter(!sector %in% no_sectors) %>% 
-  gather(year, K, -sector) %>% mutate(year = as.integer(year)) %>%
-  relocate(year, sector) %>%
-  arrange(sector, year) %>% 
-  mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
-                            sector == "MARKT" ~ "Market Economy (MARKT)", 
-                            sector == "D"| sector == "E" ~ "D-E",
-                            sector == "M"| sector == "N" ~ "M-N",
-                            sector == "O"| sector == "U" ~ "O-U",
-                            TRUE ~ sector),
-         K = K * 10^6) %>%  # In euros, not in millions of euros
-    group_by(sector, year) %>%
-    summarize(K_fixed = sum(K, na.rm = TRUE),
-              .groups = "drop")
+# Total Capital
+df_k <- read_process_capital("data/ES_capital accounts.xlsx", "Kq_GFCF", no_sectors) %>% 
+    rename(K = Kq_GFCF)
+
+# Intangible Capital(Kq_Soft_DB + Kq_RStruc + Kq_RD)
+df_k_soft_db <- read_process_capital("data/ES_capital accounts.xlsx", "Kq_Soft_DB", no_sectors)
+df_k_rstruc <- read_process_capital("data/ES_capital accounts.xlsx", "Kq_Rstruc", no_sectors)
+df_k_rd <- read_process_capital("data/ES_capital accounts.xlsx", "Kq_RD", no_sectors)
+
+df_k_noFix  <- df_k_soft_db %>% 
+    left_join(df_k_rstruc, by = c("sector", "year")) %>%
+    left_join(df_k_rd, by = c("sector", "year")) %>% 
+    mutate(k_intangible = Kq_Soft_DB + Kq_Rstruc + Kq_RD) %>%
+    select(sector, year, k_intangible)
+
+df_k <- df_k %>% left_join(df_k_noFix, by = c("sector", "year")) %>% 
+    mutate(K_fixed = K - k_intangible) %>% select(-k_intangible)
+
+rm(df_k_soft_db, df_k_rstruc, df_k_rd, df_k_noFix, read_process_capital)
 
 # [3] Labour accounts database ----
-
 # We want the following variables:
 # - year
 # - sector
 # - share_E: Shares of employment by type (18 types) in total industry employment, in %
-# - share_W: Shares of labour compensation by type (18 types) in total industry labour compensation, in %
 
-df_h_e <- read_excel("data/ES_labour accounts.xlsx", sheet = "Share_E") %>%
+df_h <- read_excel("data/ES_labour accounts.xlsx", sheet = "Share_E") %>%
   select(-country) %>%
   rename(sector = code) %>% 
   filter(!sector %in% no_sectors) %>%
@@ -131,17 +136,9 @@ df_h_e <- read_excel("data/ES_labour accounts.xlsx", sheet = "Share_E") %>%
   mutate(year = as.integer(year)) %>%
   arrange(sector, year)
 
-df_h_w <- read_excel("data/ES_labour accounts.xlsx", sheet = "Share_W") %>%
-  select(-country) %>%
-  rename(sector = code) %>% 
-  filter(!sector %in% no_sectors) %>%
-  gather(year, share_W, -sector, -education, -age, -gender) %>% 
-  mutate(year = as.integer(year)) %>%
-  arrange(sector, year)
-
 educ_years <- c("1" = 6, "2" = 12, "3" = 16)
 
-df_h <- left_join(df_h_e, df_h_w, by = c("sector", "year", "education", "age", "gender")) %>%
+df_h <- df_h %>%
     mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
                             sector == "MARKT" ~ "Market Economy (MARKT)", 
                             sector == "D"| sector == "E" ~ "D-E",
@@ -149,36 +146,26 @@ df_h <- left_join(df_h_e, df_h_w, by = c("sector", "year", "education", "age", "
                             sector == "O"| sector == "U" ~ "O-U",
                             TRUE ~ sector)) %>% 
     group_by(sector, education, age, gender, year) %>%
-    summarize(share_E = mean(share_E, na.rm = TRUE)/100,
-              share_W = mean(share_W, na.rm = TRUE)/100) %>% 
+    summarize(share_E = mean(share_E, na.rm = TRUE)/100) %>% 
     mutate(education = as.character(education),
          Years_Edu = educ_years[education]) %>%
     group_by(sector, year) %>%
-    summarise(s_e = sum(share_E * Years_Edu, na.rm = TRUE),
-            s_w = sum(share_W * Years_Edu, na.rm = TRUE),
-            .groups = "drop") %>% 
+    summarise(s = sum(share_E * Years_Edu, na.rm = TRUE), .groups = "drop") %>% 
   mutate(
-    phi_s_e = case_when(
-      s_e <= 4  ~ 0.134 * s_e,
-      s_e > 4 & s_e <= 8  ~ 0.536 + 0.101 * (s_e - 4),
-      s_e > 8  ~ 0.94 + 0.068 * (s_e - 8)),
-    phi_s_w = case_when(
-      s_w <= 4  ~ 0.134 * s_w,
-      s_w > 4 & s_w <= 8  ~ 0.536 + 0.101 * (s_w - 4),
-      s_w > 8  ~ 0.94 + 0.068 * (s_w - 8)),
-    h_e = exp(phi_s_e),
-    h_w = exp(phi_s_w)) %>% select(-phi_s_e, -phi_s_w) 
+    phi_s = case_when(
+      s <= 4  ~ 0.134 * s,
+      s > 4 & s <= 8  ~ 0.536 + 0.101 * (s - 4),
+      s > 8  ~ 0.94 + 0.068 * (s - 8)),
+    h = exp(phi_s)) %>% select(-phi_s) 
    
-
-rm(df_h_e, df_h_w, educ_years)
+rm(educ_years)
 
 # [4] Merge all databases ----
 data <- df_NA %>%
     left_join(df_k, by = c("year", "sector")) %>%
-    left_join(df_k_fixed, by = c("year", "sector")) %>%
     left_join(df_h, by = c("year", "sector"))%>% 
     group_by(sector) %>%
     mutate(gamma_y = 100*(log(y_r) - lag(log(y_r)))) %>%
     ungroup()
 
-rm(df_NA, df_k, df_h, no_sectors, df_k_fixed)
+rm(df_NA, df_k, df_h, no_sectors)

@@ -33,8 +33,8 @@ a = 1/3
 
 # Now we can calculate the TFP
 data <- data %>% 
-  mutate(A_e = y_r/((K/Y_r)^(a/(1-a)) * h_e),
-         A_w = y_r/((K/Y_r)^(a/(1-a)) * h_w))
+  mutate(A = y_r/((K/Y_r)^(a/(1-a)) * h),
+         A_kf = y_r/((K_fixed/Y_r)^(a/(1-a)) * h))
 
 # Note: (written in google docs)
 #For Capital: We are currently using the account called all the assets, this includes non-tangible assets (software, databases, R&D), it can be discussed that we can do the TFP decomposition only using tangible assets (fixed capital). 
@@ -46,13 +46,13 @@ sectors <- c('A', 'B', 'C', 'D-E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M-N', 'O-
 data <- data %>% 
   filter(sector %in% sectors)
 
-## Computed with Share_E
+## Computed with Share_E and total assets
 ggplot(data) +
- aes(x = year, y = A_e, size = gamma_y) +
+ aes(x = year, y = A, size = gamma_y) +
  geom_line(colour = 'navyblue') +
  scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
  theme_light() +
- labs(title = "TFP Residual", subtitle = "Computed with Share_E",
+ labs(title = "TFP Residual", subtitle = "Computed with Total Assets",
       y = "TFP Residual", x = "Year", size = "Real Value Added Growth Rate (%):") +
   theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
         plot.subtitle = element_text(size = 14, face = "bold", hjust = 0.5),
@@ -63,13 +63,13 @@ ggplot(data) +
         axis.text.x = element_text(size = 10, angle = 90))+
  facet_wrap(vars(sector))
 
-## Computed with Share_W
+## Computed with fixed assets
  ggplot(data) +
- aes(x = year, y = A_w, size = gamma_y) +
+ aes(x = year, y = A_kf, size = gamma_y) +
  geom_line(colour = 'navyblue') +
  scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
  theme_light() +
- labs(title = "TFP Residual", subtitle = "Computed with Share_W",
+ labs(title = "TFP Residual", subtitle = "Computed with Fixed Assets (only tangibles)",
       y = "TFP Residual", x = "Year", size = "Real Value Added growth Rate (%):") +
   theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
         plot.subtitle = element_text(size = 14, face = "bold", hjust = 0.5),
@@ -88,17 +88,17 @@ data <- data %>%
 
 ## Then, repeat the TFP decomposition
 data <- data %>% 
-  mutate(A_e_new = y_r/((K/Y_r)^(alpha/(1-alpha)) * h_e),
-         A_w_new = y_r/((K/Y_r)^(alpha/(1-alpha)) * h_w))
+  mutate(A_new = y_r/((K/Y_r)^(alpha/(1-alpha)) * h),
+         A_kf_new = y_r/((K_fixed/Y_r)^(alpha/(1-alpha)) * h))
 
 
-## Computed with Share_E
+## Computed with Total assets and sector-wise alpha
 ggplot(data) +
- aes(x = year, y = A_e_new, size = gamma_y) +
+ aes(x = year, y = A_new, size = gamma_y) +
  geom_line(colour = 'navyblue') +
  scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
  theme_light() +
- labs(title = "TFP Residual", subtitle = "Computed with Share_E | sector-wise alpha",
+ labs(title = "TFP Residual", subtitle = "Computed with Total Assets and sector-wise alpha",
       y = "TFP Residual", x = "Year", size = "Real Value Added Growth Rate (%):") +
   theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
         plot.subtitle = element_text(size = 14, face = "bold", hjust = 0.5),
@@ -109,13 +109,13 @@ ggplot(data) +
         axis.text.x = element_text(size = 10, angle = 90))+
  facet_wrap(vars(sector))
 
-## Computed with Share_W
+## Computed with Fixed assets and sector-wise alpha
  ggplot(data) +
- aes(x = year, y = A_w_new, size = gamma_y) +
+ aes(x = year, y = A_kf_new, size = gamma_y) +
  geom_line(colour = 'navyblue') +
  scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
  theme_light() +
- labs(title = "TFP Residual", subtitle = "Computed with Share_W | sector-wise alpha",
+ labs(title = "TFP Residual", subtitle = "Computed with fixed assets sector-wise alpha",
       y = "TFP Residual", x = "Year", size = "Real Value Added growth Rate (%):") +
   theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
         plot.subtitle = element_text(size = 14, face = "bold", hjust = 0.5),
