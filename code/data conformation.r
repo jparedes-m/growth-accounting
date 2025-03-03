@@ -77,6 +77,7 @@ rm(df_ydef, df_y, df_L, df_comp, read_and_process_sheet)
 # - year
 # - sector
 # - K: (Kq_GFCF: All assets, chained linked volumes (2020))
+# - K_fixed: (optional) we can use another measure only for machinery and equipment not for software, databases, R&D or buildings. 
 
 df_k <- read_excel("data/ES_capital accounts.xlsx", sheet = "Kq_GFCF") %>% 
   select(-var, -geo_code, -geo_name, -nace_r2_name) %>%
@@ -94,6 +95,24 @@ df_k <- read_excel("data/ES_capital accounts.xlsx", sheet = "Kq_GFCF") %>%
          K = K * 10^6) %>%  # In euros, not in millions of euros
     group_by(sector, year) %>%
     summarize(K = sum(K, na.rm = TRUE),
+              .groups = "drop")
+
+df_k_fixed <- read_excel("data/ES_capital accounts.xlsx", sheet = "Kq_OCon") %>% 
+  select(-var, -geo_code, -geo_name, -nace_r2_name) %>%
+  rename(sector = nace_r2_code) %>% 
+  filter(!sector %in% no_sectors) %>% 
+  gather(year, K, -sector) %>% mutate(year = as.integer(year)) %>%
+  relocate(year, sector) %>%
+  arrange(sector, year) %>% 
+  mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
+                            sector == "MARKT" ~ "Market Economy (MARKT)", 
+                            sector == "D"| sector == "E" ~ "D-E",
+                            sector == "M"| sector == "N" ~ "M-N",
+                            sector == "O"| sector == "U" ~ "O-U",
+                            TRUE ~ sector),
+         K = K * 10^6) %>%  # In euros, not in millions of euros
+    group_by(sector, year) %>%
+    summarize(K_fixed = sum(K, na.rm = TRUE),
               .groups = "drop")
 
 # [3] Labour accounts database ----
@@ -156,9 +175,10 @@ rm(df_h_e, df_h_w, educ_years)
 # [4] Merge all databases ----
 data <- df_NA %>%
     left_join(df_k, by = c("year", "sector")) %>%
+    left_join(df_k_fixed, by = c("year", "sector")) %>%
     left_join(df_h, by = c("year", "sector"))%>% 
     group_by(sector) %>%
     mutate(gamma_y = 100*(log(y_r) - lag(log(y_r)))) %>%
     ungroup()
 
-rm(df_NA, df_k, df_h, no_sectors)
+rm(df_NA, df_k, df_h, no_sectors, df_k_fixed)
