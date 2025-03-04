@@ -5,11 +5,11 @@
 # Data conformation ----
 source("code/data conformation.r")
 
-data <- data %>% 
-  filter(year %in% 2009:2019)
+#data <- data %>% filter(year %in% 2009:2019)
 
 # Question b: Output per worker ----
 data %>% 
+  filter(year %in% 2009:2019) %>%
   filter(sector == "Total Economy (TOT)" | sector == "Market Economy (MARKT)") %>% 
   ggplot(aes(x = as.integer(year), y = y_r, col = sector)) + 
   geom_line() + 
@@ -34,7 +34,9 @@ a = 1/3
 # Now we can calculate the TFP
 data <- data %>% 
   mutate(A = y_r/((K/Y_r)^(a/(1-a)) * h),
-         A_kf = y_r/((K_fixed/Y_r)^(a/(1-a)) * h))
+         A_kf = y_r/((K_fixed/Y_r)^(a/(1-a)) * h)) %>% 
+  mutate(gamma_A = 100*(log(A) - lag(log(A))),
+         gamma_A_kf = 100*(log(A_kf) - lag(log(A_kf))))
 
 # Note: (written in google docs)
 #For Capital: We are currently using the account called all the assets, this includes non-tangible assets (software, databases, R&D), it can be discussed that we can do the TFP decomposition only using tangible assets (fixed capital). 
@@ -47,8 +49,10 @@ data <- data %>%
   filter(sector %in% sectors)
 
 ## Computed with Share_E and total assets
-ggplot(data) +
- aes(x = year, y = A, size = gamma_y) +
+data%>% 
+  filter(year %in% 2009:2019) %>%
+ggplot() +
+ aes(x = year, y = gamma_A, size = gamma_y) +
  geom_line(colour = 'navyblue') +
  scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
  theme_light() +
@@ -64,8 +68,10 @@ ggplot(data) +
  facet_wrap(vars(sector))
 
 ## Computed with fixed assets
- ggplot(data) +
- aes(x = year, y = A_kf, size = gamma_y) +
+ data %>% 
+  filter(year %in% 2009:2019) %>%
+ ggplot() +
+ aes(x = year, y = gamma_A_kf, size = gamma_y) +
  geom_line(colour = 'navyblue') +
  scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
  theme_light() +
@@ -89,12 +95,16 @@ data <- data %>%
 ## Then, repeat the TFP decomposition
 data <- data %>% 
   mutate(A_new = y_r/((K/Y_r)^(alpha/(1-alpha)) * h),
-         A_kf_new = y_r/((K_fixed/Y_r)^(alpha/(1-alpha)) * h))
+         A_kf_new = y_r/((K_fixed/Y_r)^(alpha/(1-alpha)) * h)) %>% 
+  mutate(gamma_A_new = 100*(log(A_new) - lag(log(A))),
+         gamma_A_kf_new = 100*(log(A_kf_new) - lag(log(A_kf))))
 
 
 ## Computed with Total assets and sector-wise alpha
-ggplot(data) +
- aes(x = year, y = A_new, size = gamma_y) +
+data %>% 
+  filter(year %in% 2009:2019) %>%
+ggplot() +
+ aes(x = year, y = gamma_A_new, size = gamma_y) +
  geom_line(colour = 'navyblue') +
  scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
  theme_light() +
@@ -110,8 +120,10 @@ ggplot(data) +
  facet_wrap(vars(sector))
 
 ## Computed with Fixed assets and sector-wise alpha
- ggplot(data) +
- aes(x = year, y = A_kf_new, size = gamma_y) +
+ data %>% 
+  filter(year %in% 2009:2019) %>%
+ ggplot() +
+ aes(x = year, y = gamma_A_kf_new, size = gamma_y) +
  geom_line(colour = 'navyblue') +
  scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
  theme_light() +
@@ -127,4 +139,3 @@ ggplot(data) +
  facet_wrap(vars(sector))
 
 
-View(data)

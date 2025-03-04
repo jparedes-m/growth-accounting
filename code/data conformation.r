@@ -136,7 +136,7 @@ df_h <- read_excel("data/ES_labour accounts.xlsx", sheet = "Share_E") %>%
   mutate(year = as.integer(year)) %>%
   arrange(sector, year)
 
-educ_years <- c("1" = 6, "2" = 12, "3" = 16)
+educ_years <- c("1" = 16, "2" = 12, "3" = 0)
 
 df_h <- df_h %>%
     mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
