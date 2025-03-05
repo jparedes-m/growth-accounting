@@ -127,8 +127,8 @@ rm(df_k_soft_db, df_k_rstruc, df_k_rd, df_k_noFix, read_process_capital)
 # - year
 # - sector
 # - share_E: Shares of employment by type (18 types) in total industry employment, in %
-
-df_h <- read_excel("data/ES_labour accounts.xlsx", sheet = "Share_E") %>%
+# - share_W: Shares of 
+df_h_e <- read_excel("data/ES_labour accounts.xlsx", sheet = "Share_E") %>%
   select(-country) %>%
   rename(sector = code) %>% 
   filter(!sector %in% no_sectors) %>%
@@ -136,29 +136,45 @@ df_h <- read_excel("data/ES_labour accounts.xlsx", sheet = "Share_E") %>%
   mutate(year = as.integer(year)) %>%
   arrange(sector, year)
 
-educ_years <- c("1" = 16, "2" = 12, "3" = 0)
+df_h_w <- read_excel("data/ES_labour accounts.xlsx", sheet = "Share_W") %>%
+  select(-country) %>%
+  rename(sector = code) %>% 
+  filter(!sector %in% no_sectors) %>%
+  gather(year, share_W, -sector, -education, -age, -gender) %>% 
+  mutate(year = as.integer(year)) %>%
+  arrange(sector, year)
 
-df_h <- df_h %>%
+
+educ_years <- c("1" = 16, "2" = 10, "3" = 0)
+# According to EU KLEMS the educational attainment variable is:
+## 1 = University graduates (2 years of baccaulaureate, 4 years of university)
+## 2 = Intermediate (10 years of education, until completing secondary education)
+## 3 = No formal education (0 years of education) 
+
+df_h <- df_h_e %>% left_join(df_h_w, by = c("sector", "education", "age", "gender", "year")) %>% 
     mutate(sector = case_when(sector == "TOT" ~ "Total Economy (TOT)", 
                             sector == "MARKT" ~ "Market Economy (MARKT)", 
                             sector == "D"| sector == "E" ~ "D-E",
                             sector == "M"| sector == "N" ~ "M-N",
                             sector == "O"| sector == "U" ~ "O-U",
                             TRUE ~ sector)) %>% 
-    group_by(sector, education, age, gender, year) %>%
-    summarize(share_E = mean(share_E, na.rm = TRUE)/100) %>% 
     mutate(education = as.character(education),
-         Years_Edu = educ_years[education]) %>%
-    group_by(sector, year) %>%
-    summarise(s = sum(share_E * Years_Edu, na.rm = TRUE), .groups = "drop") %>% 
-  mutate(
-    phi_s = case_when(
-      s <= 4  ~ 0.134 * s,
-      s > 4 & s <= 8  ~ 0.536 + 0.101 * (s - 4),
-      s > 8  ~ 0.94 + 0.068 * (s - 8)),
-    h = exp(phi_s)) %>% select(-phi_s) 
+           Years_Edu = educ_years[education],
+           share_E = share_E/100, share_W = share_W/100) %>% 
+    group_by(sector, year) %>% 
+    summarise(s = sum(share_E * Years_Edu, na.rm = TRUE),
+              share_E = mean(share_E, na.rm = TRUE),
+              share_W = mean(share_W, na.rm = TRUE)) %>% ungroup() %>% 
+    mutate(
+      phi_s = case_when(
+        s <= 4  ~ 0.134 * s,
+        s > 4 & s <= 8  ~ 0.536 + 0.101 * (s - 4),
+        s > 8  ~ 0.94 + 0.068 * (s - 8)),
+      h = exp(phi_s),
+      phi_w = share_W/share_E - 1, 
+      h_uw = exp(phi_w)) %>% select(-phi_s, -phi_w) 
    
-rm(educ_years)
+rm(educ_years, df_h_w)
 
 # [4] Merge all databases ----
 data <- df_NA %>%
@@ -168,4 +184,4 @@ data <- df_NA %>%
     mutate(gamma_y = 100*(log(y_r) - lag(log(y_r)))) %>%
     ungroup()
 
-rm(df_NA, df_k, df_h, no_sectors)
+rm(df_NA, df_k, df_h, df_h_e, no_sectors)
