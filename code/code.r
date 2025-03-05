@@ -96,9 +96,8 @@ data <- data %>%
 data <- data %>% 
   mutate(A_new = y_r/((K/Y_r)^(alpha/(1-alpha)) * h),
          A_kf_new = y_r/((K_fixed/Y_r)^(alpha/(1-alpha)) * h)) %>% 
-  mutate(gamma_A_new = 100*(log(A_new) - lag(log(A))),
-         gamma_A_kf_new = 100*(log(A_kf_new) - lag(log(A_kf))))
-
+  mutate(gamma_A_new = 100*(log(A_new) - lag(log(A_new))),
+         gamma_A_kf_new = 100*(log(A_kf_new) - lag(log(A_kf_new))))
 
 ## Computed with Total assets and sector-wise alpha
 data %>% 
