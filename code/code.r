@@ -105,15 +105,15 @@ data <- data %>%
 ## Computed with Total assets and sector-wise alpha
 
 ## gamma_A_new
-plot_tfp(data = data, y = "gamma_A_new", .subtitle = "Computed with Total Assets and sector-wise alpha")
+plot_tfp(data = data, y = "gamma_A_new", .subtitle = "Computed with Total Assets and sector-wise alpha and Schooling Years")
 
 ## gamma_A_kf_new
-plot_tfp(data = data, y = "gamma_A_kf_new", .subtitle = "Computed with Fixed Assets and sector-wise alpha")
+plot_tfp(data = data, y = "gamma_A_kf_new", .subtitle = "Computed with Fixed Assets and sector-wise alpha and Schooling Years")
 
 ## gamma_A_new_hw
-plot_tfp(data = data, y = "gamma_A_new_hw", .subtitle = "Computed with Total Assets and sector-wise alpha")
+plot_tfp(data = data, y = "gamma_A_new_hw", .subtitle = "Computed with Total Assets and sector-wise alpha and Compensation share")
 
 ## gamma_A_kf_new_hw
-plot_tfp(data = data, y = "gamma_A_kf_new_hw", .subtitle = "Computed with Fixed Assets and sector-wise alpha")
+plot_tfp(data = data, y = "gamma_A_kf_new_hw", .subtitle = "Computed with Fixed Assets and sector-wise alpha and Compensation share")
 
 # EOF ----
