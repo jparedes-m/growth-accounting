@@ -91,6 +91,8 @@ ggplot() +
 data <- data %>% 
   mutate(labor_share = wL/Y_r, 
          alpha = 1-labor_share)
+# WHY DOES NICK MAKES THE AVERAGE (ACROSS TIME) OF ALPHA? WHY?!
+
 
 ## Then, repeat the TFP decomposition
 data <- data %>% 
