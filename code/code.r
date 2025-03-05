@@ -13,7 +13,7 @@ data %>%
   filter(sector == "Total Economy (TOT)" | sector == "Market Economy (MARKT)") %>% 
   ggplot(aes(x = as.integer(year), y = y_r, col = sector)) + 
   geom_line() + 
-  scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
+  scale_x_continuous(breaks = seq(min(data$year), max(data$year), by = 1)) +
   labs(title = "Output per worker in Spain, 2010-2019", 
        subtitle = "Real Value Added (2020 = 100)", 
        x = "Year", y = "Output per worker", colour = "Sector:") + 
@@ -54,7 +54,7 @@ data%>%
 ggplot() +
  aes(x = year, y = gamma_A, size = gamma_y) +
  geom_line(colour = 'navyblue') +
- scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
+ scale_x_continuous(breaks = seq(min(data$year), max(data$year), by = 1)) +
  theme_light() +
  labs(title = "TFP Residual", subtitle = "Computed with Total Assets",
       y = "TFP Residual", x = "Year", size = "Real Value Added Growth Rate (%):") +
@@ -73,7 +73,7 @@ ggplot() +
  ggplot() +
  aes(x = year, y = gamma_A_kf, size = gamma_y) +
  geom_line(colour = 'navyblue') +
- scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
+ scale_x_continuous(breaks = seq(min(data$year), max(data$year), by = 1)) +
  theme_light() +
  labs(title = "TFP Residual", subtitle = "Computed with Fixed Assets (only tangibles)",
       y = "TFP Residual", x = "Year", size = "Real Value Added growth Rate (%):") +
@@ -106,7 +106,7 @@ data %>%
 ggplot() +
  aes(x = year, y = gamma_A_new, size = gamma_y) +
  geom_line(colour = 'navyblue') +
- scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
+ scale_x_continuous(breaks = seq(min(data$year), max(data$year), by = 1)) +
  theme_light() +
  labs(title = "TFP Residual", subtitle = "Computed with Total Assets and sector-wise alpha",
       y = "TFP Residual", x = "Year", size = "Real Value Added Growth Rate (%):") +
@@ -125,7 +125,7 @@ ggplot() +
  ggplot() +
  aes(x = year, y = gamma_A_kf_new, size = gamma_y) +
  geom_line(colour = 'navyblue') +
- scale_x_continuous(n.breaks = max(data$year) - min(data$year)+1) +
+ scale_x_continuous(breaks = seq(min(data$year), max(data$year), by = 1)) +
  theme_light() +
  labs(title = "TFP Residual", subtitle = "Computed with fixed assets sector-wise alpha",
       y = "TFP Residual", x = "Year", size = "Real Value Added growth Rate (%):") +
