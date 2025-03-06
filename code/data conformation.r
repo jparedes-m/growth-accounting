@@ -144,7 +144,6 @@ df_h_w <- read_excel("data/ES_labour accounts.xlsx", sheet = "Share_W") %>%
   mutate(year = as.integer(year)) %>%
   arrange(sector, year)
 
-
 educ_years <- c("1" = 16, "2" = 10, "3" = 0)
 # According to EU KLEMS the educational attainment variable is:
 ## 1 = University graduates (2 years of baccaulaureate, 4 years of university)

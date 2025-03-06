@@ -116,4 +116,33 @@ plot_tfp(data = data, y = "gamma_A_new_hw", .subtitle = "Computed with Total Ass
 ## gamma_A_kf_new_hw
 plot_tfp(data = data, y = "gamma_A_kf_new_hw", .subtitle = "Computed with Fixed Assets and sector-wise alpha and Compensation share")
 
+# Question f: aggregation ----
+df <- data %>% 
+  select(sector, year, y_r, L, A, K) %>% 
+  group_by(sector) %>%  # Agrupar por sector antes de calcular tasas de crecimiento
+  arrange(year) %>%
+  mutate(
+    gamma_A = 100 * (log(A) - lag(log(A))),
+    gamma_y = 100 * (log(y_r) - lag(log(y_r))),
+    gamma_K = 100 * (log(K) - lag(log(K))),
+    gamma_L = 100 * (log(L) - lag(log(L)))
+  ) %>% 
+  ungroup() %>% 
+  group_by(year) %>%
+  mutate(
+    weight = y_r / sum(y_r, na.rm = TRUE)  # Ponderación sectorial
+  ) %>% 
+  ungroup()
+
+df_aggregated <- df %>% 
+  group_by(year) %>%
+  summarise(
+    Y_r_AGG = sum(weight * gamma_y, na.rm = TRUE),
+    A_AGG = sum(weight * gamma_A, na.rm = TRUE),
+    K_AGG = sum(weight * gamma_K, na.rm = TRUE),
+    L_AGG = sum(weight * gamma_L, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+comparison <- left_join(df_aggregated, df, by = "year")
 # EOF ----
